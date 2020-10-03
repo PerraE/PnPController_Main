@@ -30,6 +30,7 @@
 #include "fsl_iomuxc.h"
 #include "fsl_phyksz8081.h"
 #include "fsl_enet_mdio.h"
+#include "fsl_semc.h"
 
 
 /*******************************************************************************
@@ -76,6 +77,9 @@
 #define EXAMPLE_NETIF_INIT_FN ethernetif0_init
 #endif /* EXAMPLE_NETIF_INIT_FN */
 
+#define EXAMPLE_SEMC               SEMC
+#define EXAMPLE_SEMC_START_ADDRESS (0x80000000U)
+#define EXAMPLE_SEMC_CLK_FREQ      CLOCK_GetFreq(kCLOCK_SemcClk)
 
 
 /*******************************************************************************
@@ -90,7 +94,7 @@ static mdio_handle_t mdioHandle = {.ops = &EXAMPLE_MDIO_OPS};
 static phy_handle_t phyHandle   = {.phyAddr = EXAMPLE_PHY_ADDRESS, .mdioHandle = &mdioHandle, .ops = &EXAMPLE_PHY_OPS};
 /* Declared globally. */
 QueueHandle_t xInQueue = NULL;
-QueueHandle_t xPlannerQueue;
+QueueHandle_t xPlannerQueue = NULL;
 
 // Declare system global variable structure
 system_t sys;
@@ -110,9 +114,56 @@ cbuf_handle_t cbufY;
 axis_t Axis_X;
 axis_t Axis_Y;
 
+controllerBoard_t BaseController;
+controllerBoard_t HeadController;
+controllerBoard_t Feeder1Controller;
+controllerBoard_t Feeder2Controller;
+
+
+
 /*******************************************************************************
  * Code
  ******************************************************************************/
+status_t BOARD_InitSEMC(void)
+{
+    semc_config_t config;
+    semc_sdram_config_t sdramconfig;
+    uint32_t clockFrq = EXAMPLE_SEMC_CLK_FREQ;
+
+    /* Initializes the MAC configure structure to zero. */
+    memset(&config, 0, sizeof(semc_config_t));
+    memset(&sdramconfig, 0, sizeof(semc_sdram_config_t));
+
+    /* Initialize SEMC. */
+    SEMC_GetDefaultConfig(&config);
+    config.dqsMode = kSEMC_Loopbackdqspad; /* For  more accurate timing. */
+    SEMC_Init(SEMC, &config);
+
+    /* Configure SDRAM. */
+    sdramconfig.csxPinMux           = kSEMC_MUXCSX0;
+    sdramconfig.address             = 0x80000000;
+    sdramconfig.memsize_kbytes      = 32 * 1024; /* 32MB = 32*1024*1KBytes*/
+    sdramconfig.portSize            = kSEMC_PortSize16Bit;
+    sdramconfig.burstLen            = kSEMC_Sdram_BurstLen8;
+    sdramconfig.columnAddrBitNum    = kSEMC_SdramColunm_9bit;
+    sdramconfig.casLatency          = kSEMC_LatencyThree;
+    sdramconfig.tPrecharge2Act_Ns   = 18; /* Trp 18ns */
+    sdramconfig.tAct2ReadWrite_Ns   = 18; /* Trcd 18ns */
+    sdramconfig.tRefreshRecovery_Ns = 67; /* Use the maximum of the (Trfc , Txsr). */
+    sdramconfig.tWriteRecovery_Ns   = 12; /* 12ns */
+    sdramconfig.tCkeOff_Ns =
+        42; /* The minimum cycle of SDRAM CLK off state. CKE is off in self refresh at a minimum period tRAS.*/
+    sdramconfig.tAct2Prechage_Ns       = 42; /* Tras 42ns */
+    sdramconfig.tSelfRefRecovery_Ns    = 67;
+    sdramconfig.tRefresh2Refresh_Ns    = 60;
+    sdramconfig.tAct2Act_Ns            = 60;
+    sdramconfig.tPrescalePeriod_Ns     = 160 * (1000000000 / clockFrq);
+    sdramconfig.refreshPeriod_nsPerRow = 64 * 1000000 / 8192; /* 64ms/8192 */
+    sdramconfig.refreshUrgThreshold    = sdramconfig.refreshPeriod_nsPerRow;
+    sdramconfig.refreshBurstLen        = 1;
+    return SEMC_ConfigureSDRAM(SEMC, kSEMC_SDRAM_CS0, &sdramconfig, clockFrq);
+}
+
 void BOARD_InitModuleClock(void)
 {
     const clock_enet_pll_config_t config = {.enableClkOutput = true, .enableClkOutput25M = false, .loopDivider = 1};
@@ -135,8 +186,11 @@ int main(void)
 {
 
 	// Init buffer för steppers
-	Axis_X_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(stepper_buffer_t));
-	Axis_Y_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(stepper_buffer_t));
+	//Axis_X_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(stepper_buffer_t));
+	//Axis_Y_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(stepper_buffer_t));
+	Axis_X_buffer = EXAMPLE_SEMC_START_ADDRESS; /* SDRAM start address. */
+	Axis_Y_buffer = EXAMPLE_SEMC_START_ADDRESS + (AXIS_BUFFER_SIZE * sizeof(stepper_buffer_t));
+
 	cbuf_handle_t cbufX = circular_buf_init(Axis_X_buffer, AXIS_BUFFER_SIZE);
 	cbuf_handle_t cbufY = circular_buf_init(Axis_Y_buffer, AXIS_BUFFER_SIZE);
 
@@ -161,9 +215,26 @@ int main(void)
     BOARD_InitDebugConsole();
     BOARD_InitModuleClock();
 
+    //
+    // Init SDRAM
+    //
+    CLOCK_InitSysPfd(kCLOCK_Pfd2, 29);
+    /* Set semc clock to 163.86 MHz */
+    CLOCK_SetMux(kCLOCK_SemcMux, 1);
+    CLOCK_SetDiv(kCLOCK_SemcDiv, 1);
+    BOARD_InitDebugConsole();
+
+    PRINTF("\r\n SEMC SDRAM Example Start!\r\n");
+    if (BOARD_InitSEMC() != kStatus_Success)
+    {
+        PRINTF("\r\n SEMC SDRAM Init Failed\r\n");
+    }
+
+    //
+    // Init Ethernet
+    //
     IOMUXC_EnableMode(IOMUXC_GPR, kIOMUXC_GPR_ENET1TxClkOutputDir, true);
 
-    // Init GPIO for Ethernet
     GPIO_PinInit(GPIO1, 9, &gpio_config);
     GPIO_PinInit(GPIO1, 10, &gpio_config);
     /* pull up the ENET_INT before RESET. */
@@ -197,10 +268,17 @@ int main(void)
     PRINTF("************************************************\r\n");
 
 
+
+
     http_init();
     telnet_init();
     gcode_init();
     planner_init();
+
+    BaseController.MoveReady = true;
+    HeadController.MoveReady = true;
+    Feeder1Controller.MoveReady = true;
+    Feeder2Controller.MoveReady = true;
 
     vTaskStartScheduler();
 

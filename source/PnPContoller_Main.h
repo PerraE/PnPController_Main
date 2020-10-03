@@ -46,6 +46,10 @@
 
 // Axis structure
 typedef struct {
+	GPIO_Type* GPIO;				// GPIO for axis
+	uint32_t StepPin;
+	uint32_t DirPin;
+	uint32_t EnablePin;
     uint16_t SegmenStepsLeft;  		// Number of steps for segment
     uint8_t  moveReady;				// Signal that axis move is ready
 } axis_t;
@@ -57,7 +61,13 @@ typedef struct {
     uint16_t SegmentSteps;  		// Number of steps for segment
 } stepper_buffer_t;
 
-#define AXIS_BUFFER_SIZE 50
+// Controller signals
+typedef struct {
+    bool MoveReady;         		// Signal that move is ready to sync controllers
+} controllerBoard_t;
+
+
+#define AXIS_BUFFER_SIZE 10000
 extern stepper_buffer_t * Axis_X_buffer;
 extern stepper_buffer_t * Axis_Y_buffer;
 extern cbuf_handle_t cbufX;
@@ -65,5 +75,9 @@ extern cbuf_handle_t cbufY;
 extern axis_t Axis_X;
 extern axis_t Axis_Y;
 
+extern controllerBoard_t BaseController;
+extern controllerBoard_t HeadController;
+extern controllerBoard_t Feeder1Controller;
+extern controllerBoard_t Feeder2Controller;
 
 #endif /* PNPCONTOLLER_MAIN_H_ */

@@ -93,13 +93,14 @@ telnet_thread(void *arg)
 //			printf("\r\n");
 
 			// Send GCode to planner
+            // If buffer is full, wait for place in buffer before sending
 			if(len > 0)
 			{
-				xQueueSendToBack(xInQueue, &outbuff, 0 );
+				xQueueSendToBack(xInQueue, &outbuff,  portMAX_DELAY );
 			}
-			// If buffer is full, wait for place in buffer before sending
 
 			// Wait for move complete (M400)
+
 
 			// Send acknowledge
 			err = netconn_write(newconn, (const unsigned char*) (okText), sizeof(okText), NETCONN_COPY);

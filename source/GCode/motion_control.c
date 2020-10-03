@@ -43,5 +43,5 @@ status_code_t mc_line(parser_block_t * gc_block)
 {
 	extern QueueHandle_t xPlannerQueue;
 
-	xQueueSendToBack(xPlannerQueue, gc_block->values.xyz, 0 );
+	xQueueSendToBack(xPlannerQueue, gc_block, 0 );
 }

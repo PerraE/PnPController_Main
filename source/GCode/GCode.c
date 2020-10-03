@@ -9,8 +9,8 @@
 
 
 /*
-	G0	X Y Z1 Z2 C1 C2 C3 C4	Rapid Move
-	G1	X Y Z1 Z2 C1 C2 C3 C4	Linear Move
+	G0	X Y Z U A B C D			Rapid Move
+	G1	X Y Z U A B C D			Linear Move
 	G90							Absolute distance Mode
 	G91							Incremental distance mode. Not implemented
 	G94							Units per minute. G93 not supported
@@ -67,7 +67,7 @@ static void set_scaling (float factor)
 
     } while(idx);
 
-    gc_state.modal.scaling_active = factor != 1.0f;
+//    gc_state.modal.scaling_active = factor != 1.0f;
 
 //    if(state.value != gc_get_g51_state().value)
 //        sys.report.scaling = On;
@@ -93,15 +93,15 @@ axes_signals_t gc_get_g51_state ()
     return scaled;
 }
 
-float gc_get_offset (uint_fast8_t idx)
-{
-    return gc_state.modal.coord_system.xyz[idx] + gc_state.g92_coord_offset[idx] + gc_state.tool_length_offset[idx];
-}
+//float gc_get_offset (uint_fast8_t idx)
+//{
+//    return gc_state.modal.coord_system.xyz[idx] + gc_state.g92_coord_offset[idx] + gc_state.tool_length_offset[idx];
+//}
 
-inline static float gc_get_block_offset (parser_block_t *gc_block, uint_fast8_t idx)
-{
-    return gc_block->modal.coord_system.xyz[idx] + gc_state.g92_coord_offset[idx] + gc_state.tool_length_offset[idx];
-}
+//inline static float gc_get_block_offset (parser_block_t *gc_block, uint_fast8_t idx)
+//{
+//    return gc_block->modal.coord_system.xyz[idx] + gc_state.g92_coord_offset[idx] + gc_state.tool_length_offset[idx];
+//}
 
 void gc_init(bool cold_start)
 {
@@ -242,6 +242,7 @@ void parseBlock(char *block, char *message)
 {
 
     static parser_block_t gc_block;
+	extern QueueHandle_t xPlannerQueue;
 
     // Determine if the line is a program start/end marker.
     // Old comment from protocol.c:
@@ -284,7 +285,7 @@ void parseBlock(char *block, char *message)
            gc_parser_flags.jog_motion = On;
            gc_block.modal.motion = MotionMode_Linear;
            gc_block.modal.feed_mode = FeedMode_UnitsPerMin;
-           gc_block.modal.spindle_rpm_mode = SpindleSpeedMode_RPM;
+//           gc_block.modal.spindle_rpm_mode = SpindleSpeedMode_RPM;
            gc_block.values.n = JOG_LINE_NUMBER; // Initialize default line number reported during jog.
        }
 
@@ -371,7 +372,7 @@ void parseBlock(char *block, char *message)
                           case 80:
                               word_bit.group = ModalGroup_G1;
                               gc_block.modal.motion = (motion_mode_t)int_value;
-                              gc_block.modal.canned_cycle_active = false;
+//                              gc_block.modal.canned_cycle_active = false;
                               break;
 
                           case 73: case 81: case 82: case 83: case 85: case 86: case 89:
@@ -379,7 +380,7 @@ void parseBlock(char *block, char *message)
                                   FAIL(Status_GcodeAxisCommandConflict); // [Axis word/command conflict]
                               axis_command = AxisCommand_MotionMode;
                               word_bit.group = ModalGroup_G1;
-                              gc_block.modal.canned_cycle_active = true;
+//                              gc_block.modal.canned_cycle_active = true;
                               gc_block.modal.motion = (motion_mode_t)int_value;
                               gc_parser_flags.canned_cycle_change = gc_block.modal.motion != gc_state.modal.motion;
                               break;
@@ -409,7 +410,7 @@ void parseBlock(char *block, char *message)
 
                           case 20: case 21:
                               word_bit.group = ModalGroup_G6;
-                              gc_block.modal.units_imperial = int_value == 20;
+//                              gc_block.modal.units_imperial = int_value == 20;
                               break;
 
                           case 40:
@@ -429,30 +430,30 @@ void parseBlock(char *block, char *message)
                                   FAIL(Status_GcodeAxisCommandConflict); // [Axis word/command conflict] }
 
                               axis_command = AxisCommand_ToolLengthOffset;
-                              if (int_value == 49) // G49
-                                  gc_block.modal.tool_offset_mode = ToolLengthOffset_Cancel;
-      #ifdef N_TOOLS
-                              else if (mantissa == 0) // G43
-                                  gc_block.modal.tool_offset_mode = ToolLengthOffset_Enable;
-                              else if (mantissa == 20) // G43.2
-                                  gc_block.modal.tool_offset_mode = ToolLengthOffset_ApplyAdditional;
-      #endif
-                              else if (mantissa == 10) // G43.1
-                                  gc_block.modal.tool_offset_mode = ToolLengthOffset_EnableDynamic;
-                              else
-                                  FAIL(Status_GcodeUnsupportedCommand); // [Unsupported G43.x command]
-                              mantissa = 0; // Set to zero to indicate valid non-integer G command.
+//                              if (int_value == 49) // G49
+//                                  gc_block.modal.tool_offset_mode = ToolLengthOffset_Cancel;
+//      #ifdef N_TOOLS
+//                              else if (mantissa == 0) // G43
+//                                  gc_block.modal.tool_offset_mode = ToolLengthOffset_Enable;
+//                              else if (mantissa == 20) // G43.2
+//                                  gc_block.modal.tool_offset_mode = ToolLengthOffset_ApplyAdditional;
+//      #endif
+//                              else if (mantissa == 10) // G43.1
+//                                  gc_block.modal.tool_offset_mode = ToolLengthOffset_EnableDynamic;
+//                              else
+//                                  FAIL(Status_GcodeUnsupportedCommand); // [Unsupported G43.x command]
+//                              mantissa = 0; // Set to zero to indicate valid non-integer G command.
                               break;
 
                           case 54: case 55: case 56: case 57: case 58: case 59:
                               word_bit.group = ModalGroup_G12;
-                              gc_block.modal.coord_system.idx = int_value - 54; // Shift to array indexing.
-      #if N_COORDINATE_SYSTEM > 6
-                              if(int_value == 59) {
-                                  gc_block.modal.coord_system.idx += mantissa / 10;
-                                  mantissa = 0;
-                              }
-      #endif
+//                              gc_block.modal.coord_system.idx = int_value - 54; // Shift to array indexing.
+//      #if N_COORDINATE_SYSTEM > 6
+//                              if(int_value == 59) {
+//                                  gc_block.modal.coord_system.idx += mantissa / 10;
+//                                  mantissa = 0;
+//                              }
+//      #endif
                               break;
 
                           case 61:
@@ -464,13 +465,13 @@ void parseBlock(char *block, char *message)
 
                           case 98: case 99:
                               word_bit.group = ModalGroup_G10;
-                              gc_block.modal.retract_mode = (cc_retract_mode_t)(int_value - 98);
+//                              gc_block.modal.retract_mode = (cc_retract_mode_t)(int_value - 98);
                               break;
 
                           case 50: case 51:
                               axis_command = AxisCommand_Scaling;
                               word_bit.group = ModalGroup_G11;
-                              gc_block.modal.scaling_active = int_value == 51;
+//                              gc_block.modal.scaling_active = int_value == 51;
                               break;
 
                           default: FAIL(Status_GcodeUnsupportedCommand); // [Unsupported G command]
@@ -506,13 +507,9 @@ void parseBlock(char *block, char *message)
                               break;
 
                           case 49: case 50: case 51: case 53:
-                              word_bit.group = ModalGroup_M9;
-                              gc_block.override_command = (override_mode_t)int_value;
                               break;
 
                           case 61:
-                              set_tool = true;
-                              word_bit.group = ModalGroup_M6; //??
                               break;
 
                           case 62:
@@ -555,6 +552,7 @@ void parseBlock(char *block, char *message)
                           case 'A':
                               word_bit.parameter = Word_A;
                               gc_block.values.xyz[A_AXIS] = value;
+                              gc_block.controlers.Ctrl_Head = true;
                               bit_true(axis_words, bit(A_AXIS));
                               break;
 
@@ -562,18 +560,21 @@ void parseBlock(char *block, char *message)
                           case 'B':
                               word_bit.parameter = Word_B;
                               gc_block.values.xyz[B_AXIS] = value;
+                              gc_block.controlers.Ctrl_Head = true;
                               bit_true(axis_words, bit(B_AXIS));
                               break;
 
                           case 'C':
                               word_bit.parameter = Word_C;
                               gc_block.values.xyz[C_AXIS] = value;
+                              gc_block.controlers.Ctrl_Head = true;
                               bit_true(axis_words, bit(C_AXIS));
                               break;
 
                           case 'D':
                               word_bit.parameter = Word_D;
                               gc_block.values.xyz[D_AXIS] = value;
+                              gc_block.controlers.Ctrl_Head = true;
                               bit_true(axis_words, bit(D_AXIS));
                               break;
 
@@ -629,18 +630,21 @@ void parseBlock(char *block, char *message)
                           case 'U':
                               word_bit.parameter = Word_U;
                               gc_block.values.xyz[U_AXIS] = value;
+                              gc_block.controlers.Ctrl_Head = true;
                               bit_true(axis_words, bit(U_AXIS));
                               break;
 
                           case 'X':
                               word_bit.parameter = Word_X;
                               gc_block.values.xyz[X_AXIS] = value;
+                              gc_block.controlers.Ctrl_Base = true;
                               bit_true(axis_words, bit(X_AXIS));
                               break;
 
                           case 'Y':
                               word_bit.parameter = Word_Y;
                               gc_block.values.xyz[Y_AXIS] = value;
+                              gc_block.controlers.Ctrl_Base = true;
                               bit_true(axis_words, bit(Y_AXIS));
                               break;
 
@@ -660,7 +664,7 @@ void parseBlock(char *block, char *message)
 
                       // Check for invalid negative values for words F, H, N, P, T, and S.
                       // NOTE: Negative value check is done here simply for code-efficiency.
-                      if ((bit(word_bit.parameter) & (bit(Word_D)|bit(Word_F)|bit(Word_H)|bit(Word_N)|bit(Word_T)|bit(Word_S))) && value < 0.0f)
+                      if ((bit(word_bit.parameter) & (bit(Word_F)|bit(Word_H)|bit(Word_N)|bit(Word_T)|bit(Word_S))) && value < 0.0f)
                           FAIL(Status_NegativeValue); // [Word value cannot be negative]
 
                       value_words |= bit(word_bit.parameter); // Flag to indicate parameter assigned.
@@ -756,8 +760,8 @@ void parseBlock(char *block, char *message)
                if(bit_isfalse(value_words, bit(Word_F)))
                    FAIL(Status_GcodeUndefinedFeedRate);
 
-               if (gc_block.modal.units_imperial)
-                   gc_block.values.f *= MM_PER_INCH;
+//               if (gc_block.modal.units_imperial)
+//                   gc_block.values.f *= MM_PER_INCH;
 
            } else if (gc_block.modal.feed_mode == FeedMode_InverseTime) { // = G93
                // NOTE: G38 can also operate in inverse time, but is undefined as an error. Missing F word check added here.
@@ -785,33 +789,78 @@ void parseBlock(char *block, char *message)
                if (bit_isfalse(value_words, bit(Word_F))) {
                    if(gc_block.modal.feed_mode == gc_state.modal.feed_mode)
                        gc_block.values.f = gc_state.feed_rate; // Push last state feed rate
-               } else if (gc_block.modal.units_imperial)
-                   gc_block.values.f *= MM_PER_INCH;
+               }
+//               else if (gc_block.modal.units_imperial)
+//                   gc_block.values.f *= MM_PER_INCH;
            } // else, switching to G94 from G93, so don't push last state feed rate. Its undefined or the passed F word value.
 
            // bit_false(value_words,bit(Word_F)); // NOTE: Single-meaning value word. Set at end of error-checking.
 
+           //
+           //
+           //M62 P		Turn digital output on
+           //M63 P		Turn digital output off
+           //M64 PL		Pick. L=Delay before return to safe Z L=0 -> Wait for vaccuum
+           //M65 PL		Place, L=Blow time
+           //M66 PLQ	Wait for digital input
+           //M67 ELQ	Wait for analog input
+           //M68 E		Analog output
+           // -- P -- Digital port
+           //Port 0-49		Base controller
+           //Port 50-99		Head Controller
+           //Port 100-149	Feeder1 Controller
+           //Port 150-199	Feeder2 Controller
+           // --E-- Analog port
+           //Analog 0-49	Base controller
+           //Analog 50-99	Head Controller
+           //Analog 100-149	Feeder1 Controller
+           //Analog 150-199	Feeder2 Controller
+           // --L-- Wait mode
+           // Mode 0: IMMEDIATE - no waiting, returns immediately. The current value of the input is stored in parameter #5399
+           // Mode 1: RISE - waits for the selected input to perform a rise event.
+           // Mode 2: FALL - waits for the selected input to perform a fall event.
+           // Mode 3: HIGH - waits for the selected input to go to the HIGH state.
+           // Mode 4: LOW - waits for the selected input to go to the LOW state.
+           // -- Q --  specifies the timeout in seconds for waiting
+
            if(bit_istrue(command_words, bit(ModalGroup_M10)) && port_command) {
 
                switch(port_command) {
-
                    case 62:
                    case 63:
+                       if(bit_isfalse(value_words, bit(Word_P)))
+                           FAIL(Status_GcodeValueWordMissing);
+                       if(gc_block.values.p < 0.0f)
+                           FAIL(Status_NegativeValue);
+                       if((uint32_t)gc_block.values.p  > 199)
+                           FAIL(Status_GcodeValueOutOfRange);
+                       gc_block.output_command.is_digital = true;
+                       gc_block.output_command.port = (uint8_t)gc_block.values.p;
+                       gc_block.output_command.value = port_command == 62 || port_command == 64 ? 1.0f : 0.0f;
+                       bit_false(value_words, bit(Word_P));
+
+                       if((uint8_t)gc_block.values.p > 149) gc_block.controlers.Ctrl_Feeder2 = true;
+                       else if((uint8_t)gc_block.values.p > 99) gc_block.controlers.Ctrl_Feeder1 = true;
+                       else if((uint8_t)gc_block.values.p > 49) gc_block.controlers.Ctrl_Head = true;
+                       else gc_block.controlers.Ctrl_Base = true;
+                       break;
+
                    case 64:
                    case 65:
                        if(bit_isfalse(value_words, bit(Word_P)))
                            FAIL(Status_GcodeValueWordMissing);
                        if(gc_block.values.p < 0.0f)
                            FAIL(Status_NegativeValue);
-//                       if((uint32_t)gc_block.values.p + 1 > hal.port.num_digital)
-//                           FAIL(Status_GcodeValueOutOfRange);
+
                        gc_block.output_command.is_digital = true;
                        gc_block.output_command.port = (uint8_t)gc_block.values.p;
-                       gc_block.output_command.value = port_command == 62 || port_command == 64 ? 1.0f : 0.0f;
-                       bit_false(value_words, bit(Word_P));
-                       break;
+                       gc_block.output_command.value = gc_block.values.l;
+                       bit_false(value_words, bit(Word_L)|bit(Word_P)|bit(Word_Q));
+                       gc_block.controlers.Ctrl_Head = true;
+                   break;
 
                    case 66:
+                   case 67:
                        if(bit_isfalse(value_words, bit(Word_L)|bit(Word_Q)))
                            FAIL(Status_GcodeValueWordMissing);
 
@@ -845,9 +894,13 @@ void parseBlock(char *block, char *message)
                        }
 
                        bit_false(value_words, bit(Word_E)|bit(Word_L)|bit(Word_P)|bit(Word_Q));
+
+                       if(gc_block.output_command.port > 149) gc_block.controlers.Ctrl_Feeder2 = true;
+                       else if(gc_block.output_command.port > 99) gc_block.controlers.Ctrl_Feeder1 = true;
+                       else if(gc_block.output_command.port > 49) gc_block.controlers.Ctrl_Head = true;
+                       else gc_block.controlers.Ctrl_Base = true;
                        break;
 
-                   case 67:
                    case 68:
                        if(bit_isfalse(value_words, bit(Word_E)|bit(Word_Q)))
                            FAIL(Status_GcodeValueWordMissing);
@@ -857,15 +910,21 @@ void parseBlock(char *block, char *message)
                        gc_block.output_command.port = (uint8_t)gc_block.values.e;
                        gc_block.output_command.value = gc_block.values.q;
                        bit_false(value_words, bit(Word_E)|bit(Word_Q));
+
+                       if((uint8_t)gc_block.values.e > 149) gc_block.controlers.Ctrl_Feeder2 = true;
+                       else if((uint8_t)gc_block.values.e > 99) gc_block.controlers.Ctrl_Feeder1 = true;
+                       else if((uint8_t)gc_block.values.e > 49) gc_block.controlers.Ctrl_Head = true;
+                       else gc_block.controlers.Ctrl_Base = true;
                    break;
                }
            }
            // [9a. User defined M commands ]:
-           if (bit_istrue(command_words, bit(ModalGroup_M10)) && gc_block.user_mcode) {
+//           if (bit_istrue(command_words, bit(ModalGroup_M10)) && gc_block.user_mcode)
+//           {
 //               if((int_value = (uint_fast16_t)hal.user_mcode_validate(&gc_block, &value_words)))
 //                   FAIL((status_code_t)int_value);
-               axis_words = 0;
-           }
+//               axis_words = 0;
+//           }
 
            // [10. Dwell ]: P value missing. NOTE: See below.
            if (gc_block.non_modal_command == NonModal_Dwell) {
@@ -1046,7 +1105,7 @@ void parseBlock(char *block, char *message)
                     do { // Axes indices are consistent, so loop may be used.
                         if (bit_istrue(axis_words, bit(--idx))) {
                     // WPos = MPos - WCS - G92 - TLO  ->  G92 = MPos - WCS - TLO - WPos
-                            gc_block.values.xyz[idx] = gc_state.position[idx] - gc_block.modal.coord_system.xyz[idx] - gc_block.values.xyz[idx] - gc_state.tool_length_offset[idx];
+//                            gc_block.values.xyz[idx] = gc_state.position[idx] - gc_block.modal.coord_system.xyz[idx] - gc_block.values.xyz[idx] - gc_state.tool_length_offset[idx];
                         } else
                             gc_block.values.xyz[idx] = gc_state.g92_coord_offset[idx];
                     } while(idx);
@@ -1067,10 +1126,10 @@ void parseBlock(char *block, char *message)
                                 // Update specified value according to distance mode or ignore if absolute override is active.
                                 // NOTE: G53 is never active with G28/30 since they are in the same modal group.
                                 // Apply coordinate offsets based on distance mode.
-                                if (gc_block.modal.distance_incremental)
-                                    gc_block.values.xyz[idx] += gc_state.position[idx];
-                                else  // Absolute mode
-                                    gc_block.values.xyz[idx] += gc_get_block_offset(&gc_block, idx);
+//                                if (gc_block.modal.distance_incremental)
+//                                    gc_block.values.xyz[idx] += gc_state.position[idx];
+//                                else  // Absolute mode
+//                                    gc_block.values.xyz[idx] += gc_get_block_offset(&gc_block, idx);
                             }
                         } while(idx);
                     }
@@ -1089,10 +1148,12 @@ void parseBlock(char *block, char *message)
                             if (axis_words) {
                                 // Move only the axes specified in secondary move.
                                 idx = N_AXIS;
-                                do {
-                                    if (bit_isfalse(axis_words, bit(--idx)))
-                                        gc_block.values.coord_data.xyz[idx] = gc_state.position[idx];
-                                } while(idx);
+//                                do
+//                                {
+//                                    if (bit_isfalse(axis_words, bit(--idx)))
+//                                        gc_block.values.coord_data.xyz[idx] = gc_state.position[idx];
+//                                }
+//                                while(idx);
                             } else
                                 axis_command = AxisCommand_None; // Set to none if no intermediate motion.
                             break;
@@ -1128,7 +1189,7 @@ void parseBlock(char *block, char *message)
                if (axis_words) // [No axis words allowed]
                    FAIL(Status_GcodeAxisWordsExist);
 
-               gc_block.modal.retract_mode = CCRetractMode_Previous;
+//               gc_block.modal.retract_mode = CCRetractMode_Previous;
 
            // Check remaining motion modes, if axis word are implicit (exist and not used by G10/28/30/92), or
            // was explicitly commanded in the g-code block.
@@ -1146,8 +1207,8 @@ void parseBlock(char *block, char *message)
                // the value must be positive. In inverse time mode, a positive value must be passed with each block.
                } else {
 
-                   if(!gc_block.modal.canned_cycle_active)
-                       gc_block.modal.retract_mode = CCRetractMode_Previous;
+//                   if(!gc_block.modal.canned_cycle_active)
+//                       gc_block.modal.retract_mode = CCRetractMode_Previous;
 
                    // Initial(?) check for spindle running for moves in G96 mode
 //                   if(gc_block.modal.spindle_rpm_mode == SpindleSpeedMode_CSS && (!gc_block.modal.spindle.on || gc_block.values.s == 0.0f))
@@ -1327,7 +1388,7 @@ void parseBlock(char *block, char *message)
            gc_state.modal.plane_select = gc_block.modal.plane_select;
 
            // [12. Set length units ]:
-           gc_state.modal.units_imperial = gc_block.modal.units_imperial;
+//           gc_state.modal.units_imperial = gc_block.modal.units_imperial;
 
            // [13. Cutter radius compensation ]: G41/42 NOT SUPPORTED
            // gc_state.modal.cutter_comp = gc_block.modal.cutter_comp; // NOTE: Not needed since always disabled.
@@ -1348,7 +1409,7 @@ void parseBlock(char *block, char *message)
            gc_state.modal.distance_incremental = gc_block.modal.distance_incremental;
 
            // [18. Set retract mode ]:
-           gc_state.modal.retract_mode = gc_block.modal.retract_mode;
+//           gc_state.modal.retract_mode = gc_block.modal.retract_mode;
 
            // [19. Go to predefined position, Set G10, or Set axis offsets ]:
            switch(gc_block.non_modal_command) {
@@ -1437,6 +1498,7 @@ void parseBlock(char *block, char *message)
                    case MotionMode_Seek:
 //                       plan_data.condition.rapid_motion = On; // Set rapid motion condition flag.
 //                       mc_line(gc_block.values.xyz, &plan_data);
+
                 	   mc_line(&gc_block);
                 	   printf("MotionMode_Seek\r\n");
 
@@ -1551,19 +1613,19 @@ void parseBlock(char *block, char *message)
                    // [G-code 4,6,8,10,13,14,15] and [M-code 4,5,6] and the modal words [F,S,T,H] do not reset.
                    gc_state.file_run = false;
                    gc_state.modal.motion = MotionMode_Linear;
-                   gc_block.modal.canned_cycle_active = false;
+//                   gc_block.modal.canned_cycle_active = false;
                    gc_state.modal.plane_select = PlaneSelect_XY;
        //            gc_state.modal.plane_select = settings.flags.lathe_mode ? PlaneSelect_ZX : PlaneSelect_XY;
-                   gc_state.modal.spindle_rpm_mode = SpindleSpeedMode_RPM; // NOTE: not compliant with linuxcnc (?)
+//                   gc_state.modal.spindle_rpm_mode = SpindleSpeedMode_RPM; // NOTE: not compliant with linuxcnc (?)
                    gc_state.modal.distance_incremental = false;
                    gc_state.modal.feed_mode = FeedMode_UnitsPerMin;
        // TODO: check           gc_state.distance_per_rev = 0.0f;
                    // gc_state.modal.cutter_comp = CUTTER_COMP_DISABLE; // Not supported.
-                   gc_state.modal.coord_system.idx = 0; // G54
+//                   gc_state.modal.coord_system.idx = 0; // G54
 //                   gc_state.modal.spindle = (spindle_state_t){0};
 //                   gc_state.modal.coolant = (coolant_state_t){0};
-                   gc_state.modal.override_ctrl.feed_rate_disable = Off;
-                   gc_state.modal.override_ctrl.spindle_rpm_disable = Off;
+//                   gc_state.modal.override_ctrl.feed_rate_disable = Off;
+//                   gc_state.modal.override_ctrl.spindle_rpm_disable = Off;
 //                   if(settings.parking.flags.enabled)
 //                       gc_state.modal.override_ctrl.parking_disable = settings.parking.flags.enable_override_control &&
 //                                                                       settings.parking.flags.deactivate_upon_init;

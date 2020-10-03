@@ -134,8 +134,9 @@ typedef enum {
 } parameter_word_t;
 
 
-#define AXIS_WORDS_MASK ((1 << Word_X)|(1 << Word_Y)|(1 << Word_Z)|(1 << Word_A)|(1 << Word_B)|(1 << Word_C)|(1 << Word_U)|(1 << Word_V))
-
+#define AXIS_WORDS_MASK ((1 << Word_X)|(1 << Word_Y)|(1 << Word_Z)|(1 << Word_A)|(1 << Word_B)|(1 << Word_C)|(1 << Word_D)|(1 << Word_U))
+#define CTRL_BASE_MASK ((1 << Word_X))
+#define CTRL_HEAD_MASK ((1 << Word_Z)|(1 << Word_A)|(1 << Word_B)|(1 << Word_C)|(1 << Word_D)|(1 << Word_U))
 
 typedef union {
     parameter_word_t parameter;
@@ -339,15 +340,11 @@ typedef union {
         float x;
         float y;
         float z;
-#ifdef A_AXIS
         float a;
-#endif
-#ifdef B_AXIS
         float b;
-#endif
-#ifdef C_AXIS
         float c;
-#endif
+        float d;
+        float u;
     };
 } coord_data_t;
 
@@ -365,35 +362,35 @@ typedef struct {
 typedef struct {
     motion_mode_t motion;                // {G0,G1,G2,G3,G38.2,G80}
     feed_mode_t feed_mode;               // {G93,G94}
-    bool units_imperial;                 // {G20,G21}
     bool distance_incremental;           // {G90,G91}
-    bool diameter_mode;                  // {G7,G8} Lathe diameter mode.
-    // uint8_t distance_arc;             // {G91.1} NOTE: Don't track. Only default supported.
     plane_select_t plane_select;         // {G17,G18,G19}
-    // uint8_t cutter_comp;              // {G40} NOTE: Don't track. Only default supported.
-    tool_offset_mode_t tool_offset_mode; // {G43,G43.1,G49}
-    coord_system_t coord_system;         // {G54,G55,G56,G57,G58,G59,G59.1,G59.2,G59.3}
-    // uint8_t control;                  // {G61} NOTE: Don't track. Only default supported.
     program_flow_t program_flow;         // {M0,M1,M2,M30}
-    gc_override_flags_t override_ctrl;   // {M48,M49,M50,M51,M53,M56}
-    spindle_rpm_mode_t spindle_rpm_mode; // {G96,G97}
-    cc_retract_mode_t retract_mode;      // {G98,G99}
-    bool scaling_active;                 // {G50,G51}
-    bool canned_cycle_active;
-    float spline_pq[2];                  // {G5}
+//    bool units_imperial;                 // {G20,G21}
+//    bool diameter_mode;                  // {G7,G8} Lathe diameter mode
+//    uint8_t distance_arc;             // {G91.1} NOTE: Don't track. Only default supported.
+//    uint8_t cutter_comp;              // {G40} NOTE: Don't track. Only default supported.
+//    tool_offset_mode_t tool_offset_mode; // {G43,G43.1,G49}
+//    coord_system_t coord_system;         // {G54,G55,G56,G57,G58,G59,G59.1,G59.2,G59.3}
+//    uint8_t control;                  // {G61} NOTE: Don't track. Only default supported.
+//    gc_override_flags_t override_ctrl;   // {M48,M49,M50,M51,M53,M56}
+//    spindle_rpm_mode_t spindle_rpm_mode; // {G96,G97}
+//    cc_retract_mode_t retract_mode;      // {G98,G99}
+//    bool scaling_active;                 // {G50,G51}
+//    bool canned_cycle_active;
+//    float spline_pq[2];                  // {G5}
 } gc_modal_t;
 
 typedef struct {
     float e;                   // Thread taper length (G76)
     float f;                   // Feed
-    float ijk[3];              // I,J,K Axis arc offsets
+//    float ijk[3];              // I,J,K Axis arc offsets
     float k;                   // G33 distance per revolution
     float p;                   // G10 or dwell parameters
     float q;                   // User defined M-code parameter (G82 peck drilling, not supported)
     float r;                   // Arc radius or retract position
     float s;                   // Spindle speed
     float xyz[N_AXIS];         // X,Y,Z Translational axes
-    coord_system_t coord_data; // Coordinate data
+//    coord_system_t coord_data; // Coordinate data
     int32_t n;                 // Line number
     uint8_t h;                 // Tool number
     uint8_t t;                 // Tool selection
@@ -482,20 +479,26 @@ typedef struct {
 } scale_factor_t;
 
 extern parser_state_t gc_state;
-#ifdef N_TOOLS
-extern tool_data_t tool_table[N_TOOLS + 1];
-#else
 extern tool_data_t tool_table;
-#endif
+
+typedef struct  {
+	bool Ctrl_Base;
+	bool Ctrl_Head;
+	bool Ctrl_Feeder1;
+	bool Ctrl_Feeder2;
+} controller_t;
 
 typedef struct {
     non_modal_t non_modal_command;
-    override_mode_t override_command; // TODO: add to non_modal above?
-    user_mcode_t user_mcode;
-    bool user_mcode_sync;
     gc_modal_t modal;
     gc_values_t values;
+    controller_t controlers;
     output_command_t output_command;
+
+//    override_mode_t override_command; // TODO: add to non_modal above?
+//    user_mcode_t user_mcode;
+//    bool user_mcode_sync;
+
 } parser_block_t;
 
 // Sets g-code parser position in mm. Input in steps. Called by the system abort and hard
