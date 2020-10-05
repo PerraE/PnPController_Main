@@ -107,12 +107,6 @@ volatile uint_fast16_t sys_rt_exec_alarm;   // Global realtime executor bitflag 
 
 HAL hal;
 
-stepper_buffer_t * Axis_X_buffer;
-stepper_buffer_t * Axis_Y_buffer;
-cbuf_handle_t cbufX;
-cbuf_handle_t cbufY;
-axis_t Axis_X;
-axis_t Axis_Y;
 
 controllerBoard_t BaseController;
 controllerBoard_t HeadController;
@@ -185,14 +179,6 @@ void delay(void)
 int main(void)
 {
 
-	// Init buffer för steppers
-	//Axis_X_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(stepper_buffer_t));
-	//Axis_Y_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(stepper_buffer_t));
-	Axis_X_buffer = EXAMPLE_SEMC_START_ADDRESS; /* SDRAM start address. */
-	Axis_Y_buffer = EXAMPLE_SEMC_START_ADDRESS + (AXIS_BUFFER_SIZE * sizeof(stepper_buffer_t));
-
-	cbuf_handle_t cbufX = circular_buf_init(Axis_X_buffer, AXIS_BUFFER_SIZE);
-	cbuf_handle_t cbufY = circular_buf_init(Axis_Y_buffer, AXIS_BUFFER_SIZE);
 
     static struct netif netif;
 #if defined(FSL_FEATURE_SOC_LPC_ENET_COUNT) && (FSL_FEATURE_SOC_LPC_ENET_COUNT > 0)
@@ -229,6 +215,16 @@ int main(void)
     {
         PRINTF("\r\n SEMC SDRAM Init Failed\r\n");
     }
+
+
+
+    //
+    // Init pins
+    //
+    GPIO_PinInit(GPIO1, 27, &gpio_config);		// STATUSLED
+    GPIO_PinInit(GPIO1, 18, &gpio_config);		// STEPX
+    GPIO_WritePinOutput(GPIO1, 27, 0);
+    GPIO_WritePinOutput(GPIO1, 18, 0);
 
     //
     // Init Ethernet

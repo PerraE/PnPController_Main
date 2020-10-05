@@ -33,22 +33,22 @@ void circular_buf_reset(cbuf_handle_t cbuf);
 /// Put version 1 continues to add data if the buffer is full
 /// Old data is overwritten
 /// Requires: cbuf is valid and created by circular_buf_init
-void circular_buf_put(cbuf_handle_t cbuf, uint8_t data);
+void circular_buf_put(cbuf_handle_t cbuf, uint32_t data);
 
 /// Put Version 2 rejects new data if the buffer is full
 /// Requires: cbuf is valid and created by circular_buf_init
 /// Returns 0 on success, -1 if buffer is full
-int circular_buf_put2(cbuf_handle_t cbuf, uint8_t data);
+int circular_buf_put2(cbuf_handle_t cbuf, uint32_t data);
 
 /// Retrieve a value from the buffer
 /// Requires: cbuf is valid and created by circular_buf_init
 /// Returns 0 on success, -1 if the buffer is empty
-int circular_buf_get(cbuf_handle_t cbuf, uint8_t * data);
+int circular_buf_get(cbuf_handle_t cbuf, uint32_t * data);
 
 /// Get current value from the buffer without removing it
 /// Requires: cbuf is valid and created by circular_buf_init
 /// Returns 0 on success, -1 if the buffer is empty
-int circular_buf_peek(cbuf_handle_t cbuf, uint8_t * data);
+int circular_buf_peek(cbuf_handle_t cbuf, uint32_t * data);
 
 /// CHecks if the buffer is empty
 /// Requires: cbuf is valid and created by circular_buf_init

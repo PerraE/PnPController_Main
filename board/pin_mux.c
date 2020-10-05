@@ -12,11 +12,16 @@ package_id: MIMXRT1062DVL6A
 mcu_data: ksdk2_0
 processor_version: 8.0.2
 board: MIMXRT1060-EVK
+pin_labels:
+- {pin_num: F11, pin_signal: GPIO_AD_B0_04, label: DIR_X, identifier: CSI_PWDN;DIR_X}
+- {pin_num: L11, pin_signal: GPIO_AD_B1_02, label: STEP_X, identifier: SPDIF_OUT;STEP_X}
+- {pin_num: J13, pin_signal: GPIO_AD_B1_11, label: STATUSLED, identifier: CSI_D6;STATUSLED}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 
 #include "fsl_common.h"
 #include "fsl_iomuxc.h"
+#include "fsl_gpio.h"
 #include "pin_mux.h"
 
 /* FUNCTION ************************************************************************************************************
@@ -62,6 +67,11 @@ BOARD_InitPins:
     pull_keeper_select: Pull, pull_keeper_enable: Enable, open_drain: Disable, speed: MHZ_100, drive_strength: R0_5, slew_rate: Fast}
   - {pin_num: G13, peripheral: GPIO1, signal: 'gpio_io, 10', pin_signal: GPIO_AD_B0_10, software_input_on: Disable, hysteresis_enable: Disable, pull_up_down_config: Pull_Up_100K_Ohm,
     pull_keeper_select: Pull, pull_keeper_enable: Enable, open_drain: Disable, speed: MHZ_100, drive_strength: R0_5, slew_rate: Fast}
+  - {pin_num: L11, peripheral: GPIO1, signal: 'gpio_io, 18', pin_signal: GPIO_AD_B1_02, identifier: STEP_X, direction: OUTPUT, gpio_init_state: 'false', pull_up_down_config: Pull_Down_100K_Ohm,
+    pull_keeper_select: Pull, speed: MHZ_100, drive_strength: R0_5, slew_rate: Fast}
+  - {pin_num: F11, peripheral: GPIO1, signal: 'gpio_io, 04', pin_signal: GPIO_AD_B0_04, identifier: DIR_X, direction: OUTPUT, drive_strength: R0_5, slew_rate: Fast}
+  - {pin_num: J13, peripheral: GPIO1, signal: 'gpio_io, 27', pin_signal: GPIO_AD_B1_11, identifier: STATUSLED, direction: OUTPUT, pull_keeper_select: Pull, drive_strength: R0_5,
+    slew_rate: Fast}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 
@@ -74,6 +84,36 @@ BOARD_InitPins:
 void BOARD_InitPins(void) {
   CLOCK_EnableClock(kCLOCK_Iomuxc);           /* iomuxc clock (iomuxc_clk_enable): 0x03U */
 
+  /* GPIO configuration of DIR_X on GPIO_AD_B0_04 (pin F11) */
+  gpio_pin_config_t DIR_X_config = {
+      .direction = kGPIO_DigitalOutput,
+      .outputLogic = 0U,
+      .interruptMode = kGPIO_NoIntmode
+  };
+  /* Initialize GPIO functionality on GPIO_AD_B0_04 (pin F11) */
+  GPIO_PinInit(GPIO1, 4U, &DIR_X_config);
+
+  /* GPIO configuration of STEP_X on GPIO_AD_B1_02 (pin L11) */
+  gpio_pin_config_t STEP_X_config = {
+      .direction = kGPIO_DigitalOutput,
+      .outputLogic = 0U,
+      .interruptMode = kGPIO_NoIntmode
+  };
+  /* Initialize GPIO functionality on GPIO_AD_B1_02 (pin L11) */
+  GPIO_PinInit(GPIO1, 18U, &STEP_X_config);
+
+  /* GPIO configuration of STATUSLED on GPIO_AD_B1_11 (pin J13) */
+  gpio_pin_config_t STATUSLED_config = {
+      .direction = kGPIO_DigitalOutput,
+      .outputLogic = 0U,
+      .interruptMode = kGPIO_NoIntmode
+  };
+  /* Initialize GPIO functionality on GPIO_AD_B1_11 (pin J13) */
+  GPIO_PinInit(GPIO1, 27U, &STATUSLED_config);
+
+  IOMUXC_SetPinMux(
+      IOMUXC_GPIO_AD_B0_04_GPIO1_IO04,        /* GPIO_AD_B0_04 is configured as GPIO1_IO04 */
+      0U);                                    /* Software Input On Field: Input Path is determined by functionality */
   IOMUXC_SetPinMux(
       IOMUXC_GPIO_AD_B0_09_GPIO1_IO09,        /* GPIO_AD_B0_09 is configured as GPIO1_IO09 */
       0U);                                    /* Software Input On Field: Input Path is determined by functionality */
@@ -85,6 +125,12 @@ void BOARD_InitPins(void) {
       0U);                                    /* Software Input On Field: Input Path is determined by functionality */
   IOMUXC_SetPinMux(
       IOMUXC_GPIO_AD_B0_13_LPUART1_RX,        /* GPIO_AD_B0_13 is configured as LPUART1_RX */
+      0U);                                    /* Software Input On Field: Input Path is determined by functionality */
+  IOMUXC_SetPinMux(
+      IOMUXC_GPIO_AD_B1_02_GPIO1_IO18,        /* GPIO_AD_B1_02 is configured as GPIO1_IO18 */
+      0U);                                    /* Software Input On Field: Input Path is determined by functionality */
+  IOMUXC_SetPinMux(
+      IOMUXC_GPIO_AD_B1_11_GPIO1_IO27,        /* GPIO_AD_B1_11 is configured as GPIO1_IO27 */
       0U);                                    /* Software Input On Field: Input Path is determined by functionality */
   IOMUXC_SetPinMux(
       IOMUXC_GPIO_B1_04_ENET_RX_DATA00,       /* GPIO_B1_04 is configured as ENET_RX_DATA00 */
@@ -120,6 +166,16 @@ void BOARD_InitPins(void) {
     (~(IOMUXC_GPR_GPR26_GPIO_MUX1_GPIO_SEL_MASK))) /* Mask bits to zero which are setting */
       | IOMUXC_GPR_GPR26_GPIO_MUX1_GPIO_SEL(0x00U) /* GPIO1 and GPIO6 share same IO MUX function, GPIO_MUX1 selects one GPIO function: 0x00U */
     );
+  IOMUXC_SetPinConfig(
+      IOMUXC_GPIO_AD_B0_04_GPIO1_IO04,        /* GPIO_AD_B0_04 PAD functional properties : */
+      0x30A9U);                               /* Slew Rate Field: Fast Slew Rate
+                                                 Drive Strength Field: R0/5
+                                                 Speed Field: medium(100MHz)
+                                                 Open Drain Enable Field: Open Drain Disabled
+                                                 Pull / Keep Enable Field: Pull/Keeper Enabled
+                                                 Pull / Keep Select Field: Pull
+                                                 Pull Up / Down Config. Field: 100K Ohm Pull Down
+                                                 Hyst. Enable Field: Hysteresis Disabled */
   IOMUXC_SetPinConfig(
       IOMUXC_GPIO_AD_B0_09_GPIO1_IO09,        /* GPIO_AD_B0_09 PAD functional properties : */
       0xB0A9U);                               /* Slew Rate Field: Fast Slew Rate
@@ -158,6 +214,26 @@ void BOARD_InitPins(void) {
                                                  Open Drain Enable Field: Open Drain Disabled
                                                  Pull / Keep Enable Field: Pull/Keeper Enabled
                                                  Pull / Keep Select Field: Keeper
+                                                 Pull Up / Down Config. Field: 100K Ohm Pull Down
+                                                 Hyst. Enable Field: Hysteresis Disabled */
+  IOMUXC_SetPinConfig(
+      IOMUXC_GPIO_AD_B1_02_GPIO1_IO18,        /* GPIO_AD_B1_02 PAD functional properties : */
+      0x30A9U);                               /* Slew Rate Field: Fast Slew Rate
+                                                 Drive Strength Field: R0/5
+                                                 Speed Field: medium(100MHz)
+                                                 Open Drain Enable Field: Open Drain Disabled
+                                                 Pull / Keep Enable Field: Pull/Keeper Enabled
+                                                 Pull / Keep Select Field: Pull
+                                                 Pull Up / Down Config. Field: 100K Ohm Pull Down
+                                                 Hyst. Enable Field: Hysteresis Disabled */
+  IOMUXC_SetPinConfig(
+      IOMUXC_GPIO_AD_B1_11_GPIO1_IO27,        /* GPIO_AD_B1_11 PAD functional properties : */
+      0x30A9U);                               /* Slew Rate Field: Fast Slew Rate
+                                                 Drive Strength Field: R0/5
+                                                 Speed Field: medium(100MHz)
+                                                 Open Drain Enable Field: Open Drain Disabled
+                                                 Pull / Keep Enable Field: Pull/Keeper Enabled
+                                                 Pull / Keep Select Field: Pull
                                                  Pull Up / Down Config. Field: 100K Ohm Pull Down
                                                  Hyst. Enable Field: Hysteresis Disabled */
   IOMUXC_SetPinConfig(

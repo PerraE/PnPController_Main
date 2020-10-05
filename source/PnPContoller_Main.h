@@ -26,7 +26,7 @@
 #include "hal.h"
 #include "system.h"
 #include "defaults.h"
-#include "circular_buffer.h"
+
 //#include "coolant_control.h"
 //#include "eeprom.h"
 //#include "eeprom_emulate.h"
@@ -52,6 +52,7 @@ typedef struct {
 	uint32_t EnablePin;
     uint16_t SegmenStepsLeft;  		// Number of steps for segment
     uint8_t  moveReady;				// Signal that axis move is ready
+    uint8_t  AxisNum;
 } axis_t;
 
 
@@ -67,13 +68,6 @@ typedef struct {
 } controllerBoard_t;
 
 
-#define AXIS_BUFFER_SIZE 10000
-extern stepper_buffer_t * Axis_X_buffer;
-extern stepper_buffer_t * Axis_Y_buffer;
-extern cbuf_handle_t cbufX;
-extern cbuf_handle_t cbufY;
-extern axis_t Axis_X;
-extern axis_t Axis_Y;
 
 extern controllerBoard_t BaseController;
 extern controllerBoard_t HeadController;

@@ -112,6 +112,39 @@ void BOARD_InitBootPins(void);
 #define BOARD_INITPINS_INT1_COMBO_GPIO_PIN                                   10U   /*!< GPIO pin number */
 #define BOARD_INITPINS_INT1_COMBO_GPIO_PIN_MASK                      (1U << 10U)   /*!< GPIO pin mask */
 
+/* GPIO_AD_B1_02 (coord L11), STEP_X */
+/* Routed pin properties */
+#define BOARD_INITPINS_STEP_X_PERIPHERAL                                   GPIO1   /*!< Peripheral name */
+#define BOARD_INITPINS_STEP_X_SIGNAL                                     gpio_io   /*!< Signal name */
+#define BOARD_INITPINS_STEP_X_CHANNEL                                        18U   /*!< Signal channel */
+
+/* Symbols to be used with GPIO driver */
+#define BOARD_INITPINS_STEP_X_GPIO                                         GPIO1   /*!< GPIO peripheral base pointer */
+#define BOARD_INITPINS_STEP_X_GPIO_PIN                                       18U   /*!< GPIO pin number */
+#define BOARD_INITPINS_STEP_X_GPIO_PIN_MASK                          (1U << 18U)   /*!< GPIO pin mask */
+
+/* GPIO_AD_B0_04 (coord F11), DIR_X */
+/* Routed pin properties */
+#define BOARD_INITPINS_DIR_X_PERIPHERAL                                    GPIO1   /*!< Peripheral name */
+#define BOARD_INITPINS_DIR_X_SIGNAL                                      gpio_io   /*!< Signal name */
+#define BOARD_INITPINS_DIR_X_CHANNEL                                          4U   /*!< Signal channel */
+
+/* Symbols to be used with GPIO driver */
+#define BOARD_INITPINS_DIR_X_GPIO                                          GPIO1   /*!< GPIO peripheral base pointer */
+#define BOARD_INITPINS_DIR_X_GPIO_PIN                                         4U   /*!< GPIO pin number */
+#define BOARD_INITPINS_DIR_X_GPIO_PIN_MASK                            (1U << 4U)   /*!< GPIO pin mask */
+
+/* GPIO_AD_B1_11 (coord J13), STATUSLED */
+/* Routed pin properties */
+#define BOARD_INITPINS_STATUSLED_PERIPHERAL                                GPIO1   /*!< Peripheral name */
+#define BOARD_INITPINS_STATUSLED_SIGNAL                                  gpio_io   /*!< Signal name */
+#define BOARD_INITPINS_STATUSLED_CHANNEL                                     27U   /*!< Signal channel */
+
+/* Symbols to be used with GPIO driver */
+#define BOARD_INITPINS_STATUSLED_GPIO                                      GPIO1   /*!< GPIO peripheral base pointer */
+#define BOARD_INITPINS_STATUSLED_GPIO_PIN                                    27U   /*!< GPIO pin number */
+#define BOARD_INITPINS_STATUSLED_GPIO_PIN_MASK                       (1U << 27U)   /*!< GPIO pin mask */
+
 
 /*!
  * @brief Configures pin routing and optionally pin electrical features.

@@ -24,6 +24,11 @@
          <pins_profile>
             <processor_version>8.0.2</processor_version>
             <power_domains/>
+            <pin_labels>
+               <pin_label pin_num="F11" pin_signal="GPIO_AD_B0_04" label="DIR_X" identifier="CSI_PWDN;DIR_X"/>
+               <pin_label pin_num="L11" pin_signal="GPIO_AD_B1_02" label="STEP_X" identifier="SPDIF_OUT;STEP_X"/>
+               <pin_label pin_num="J13" pin_signal="GPIO_AD_B1_11" label="STATUSLED" identifier="CSI_D6;STATUSLED"/>
+            </pin_labels>
          </pins_profile>
          <functions_list>
             <function name="BOARD_InitPins">
@@ -50,6 +55,11 @@
                      </feature>
                   </dependency>
                   <dependency resourceType="SWComponent" resourceId="platform.drivers.iomuxc" description="Pins initialization requires the IOMUXC Driver in the project." problem_level="2" source="Pins:BOARD_InitPins">
+                     <feature name="enabled" evaluation="equal" configuration="core0">
+                        <data>true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="SWComponent" resourceId="platform.drivers.igpio" description="Pins initialization requires the IGPIO Driver in the project." problem_level="2" source="Pins:BOARD_InitPins">
                      <feature name="enabled" evaluation="equal" configuration="core0">
                         <data>true</data>
                      </feature>
@@ -234,6 +244,35 @@
                         <pin_feature name="pull_keeper_enable" value="Enable"/>
                         <pin_feature name="open_drain" value="Disable"/>
                         <pin_feature name="speed" value="MHZ_100"/>
+                        <pin_feature name="drive_strength" value="R0_5"/>
+                        <pin_feature name="slew_rate" value="Fast"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="GPIO1" signal="gpio_io, 18" pin_num="L11" pin_signal="GPIO_AD_B1_02">
+                     <pin_features>
+                        <pin_feature name="identifier" value="STEP_X"/>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="gpio_init_state" value="false"/>
+                        <pin_feature name="pull_up_down_config" value="Pull_Down_100K_Ohm"/>
+                        <pin_feature name="pull_keeper_select" value="Pull"/>
+                        <pin_feature name="speed" value="MHZ_100"/>
+                        <pin_feature name="drive_strength" value="R0_5"/>
+                        <pin_feature name="slew_rate" value="Fast"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="GPIO1" signal="gpio_io, 04" pin_num="F11" pin_signal="GPIO_AD_B0_04">
+                     <pin_features>
+                        <pin_feature name="identifier" value="DIR_X"/>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="drive_strength" value="R0_5"/>
+                        <pin_feature name="slew_rate" value="Fast"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="GPIO1" signal="gpio_io, 27" pin_num="J13" pin_signal="GPIO_AD_B1_11">
+                     <pin_features>
+                        <pin_feature name="identifier" value="STATUSLED"/>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="pull_keeper_select" value="Pull"/>
                         <pin_feature name="drive_strength" value="R0_5"/>
                         <pin_feature name="slew_rate" value="Fast"/>
                      </pin_features>

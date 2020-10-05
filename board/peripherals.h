@@ -6,40 +6,9 @@
 #ifndef _PERIPHERALS_H_
 #define _PERIPHERALS_H_
 
-/***********************************************************************************************************************
- * Included files
- **********************************************************************************************************************/
-#include "fsl_common.h"
-#include "fsl_pit.h"
-
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */
-
-/***********************************************************************************************************************
- * Definitions
- **********************************************************************************************************************/
-/* Definitions for BOARD_InitPeripherals functional group */
-/* BOARD_InitPeripherals defines for PIT */
-/* Definition of peripheral ID. */
-#define PIT_PERIPHERAL PIT
-/* Definition of clock source frequency. */
-#define PIT_CLK_FREQ 66000000UL
-/* Definition of ticks count for channel 0 - deprecated. */
-#define PIT_0_TICKS 13199U
-/* PIT interrupt vector ID (number) - deprecated. */
-#define PIT_0_IRQN PIT_IRQn
-/* PIT interrupt handler identifier - deprecated. */
-#define PIT_0_IRQHANDLER PIT0_IRQHandler
-/* Definition of channel number for channel 0. */
-#define PIT_CHANNEL_0 kPIT_Chnl_0
-/* Definition of ticks count for channel 0. */
-#define PIT_CHANNEL_0_TICKS 13199U
-
-/***********************************************************************************************************************
- * Global variables
- **********************************************************************************************************************/
-extern const pit_config_t PIT_config;
 
 /***********************************************************************************************************************
  * Initialization functions
