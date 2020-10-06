@@ -50,7 +50,9 @@ typedef struct {
 	uint32_t StepPin;
 	uint32_t DirPin;
 	uint32_t EnablePin;
-    uint16_t SegmenStepsLeft;  		// Number of steps for segment
+	uint32_t ActualPos;  			// Actual position
+	uint32_t TargetPos;				// Target position
+	bool	 DirectionForward;		// Direction of move
     uint8_t  moveReady;				// Signal that axis move is ready
     uint8_t  AxisNum;
 } axis_t;

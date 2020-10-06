@@ -21,7 +21,7 @@
 #define PIT_SOURCE_CLOCK 			CLOCK_GetFreq(kCLOCK_PerClk)
 
 #define EXAMPLE_SEMC_START_ADDRESS (0x80000000U)
-#define AXIS_BUFFER_SIZE 100
+#define AXIS_BUFFER_SIZE 300
 //#define useSDRAM
 
 /*******************************************************************************
@@ -155,8 +155,6 @@ void HandlePIT_IRQ(pit_chnl_t c, cbuf_handle_t cbuf, axis_t * axis)
 	// Check if channel has caused the interrupt
 	if(PIT_GetStatusFlags(PIT, c) == 1)
 	{
-		// Clear interrupt
-		PIT_ClearStatusFlags(PIT, c, kPIT_TimerFlag);
 
 		// Check if steps left in segment
 //		if(axis->SegmenStepsLeft-- == 0)
@@ -165,7 +163,7 @@ void HandlePIT_IRQ(pit_chnl_t c, cbuf_handle_t cbuf, axis_t * axis)
 #ifdef useSDRAM
 			if(SDRAM_buf_get(cbuf, axis->AxisNum, &data) == 0)
 #else
-			if(circular_buf_get(cbuf, &data) == 0)
+			if(circular_buf_get(cbuf, &data)==0)
 #endif
 			{
 				PIT_SetTimerPeriod(PIT, c, data);
@@ -173,17 +171,21 @@ void HandlePIT_IRQ(pit_chnl_t c, cbuf_handle_t cbuf, axis_t * axis)
 				if(data != 0)
 				{
 					GPIO_PortToggle	(axis->GPIO, (1 << axis->StepPin));
+					Axis_X.ActualPos ++;
 				}
 			}
 			// Disable timer and set move as ready
-			else
+			if(Axis_X.ActualPos == Axis_X.TargetPos)
 			{
-				axis->moveReady = 1;
 				PIT_StopTimer(PIT, c);
 				printf("StopTimer\r\n");
+				axis->moveReady = 1;
 			}
 
 		}
+
+		// Clear interrupt
+		PIT_ClearStatusFlags(PIT, c, kPIT_TimerFlag);
 
 	}
 }
@@ -232,13 +234,12 @@ void submitMoveBase(parser_block_t *block, char *message)
 	uint32_t ticksForStep, i;
 	BaseController.MoveReady = false;
 	Axis_X.moveReady = 1;
-	Axis_X.AxisNum = 1;
 	Axis_Y.moveReady = 1;
-	Axis_Y.AxisNum = 2;
 
 	//Loop throu all segments in move and add to ring buffer
 	// Min=3us = 198
-	ticksForStep = USEC_TO_COUNT(3U, PIT_SOURCE_CLOCK);
+	// Min time for routine is 350 ->
+	ticksForStep = USEC_TO_COUNT(3, PIT_SOURCE_CLOCK);
 
 #ifdef useSDRAM
 	SDRAM_buf_put(cbufX, Axis_X.AxisNum, 0U);
@@ -252,15 +253,17 @@ void submitMoveBase(parser_block_t *block, char *message)
 
 	PIT_StartTimer(PIT, kPIT_Chnl_0);
 	//PIT_StartTimer(PIT, kPIT_Chnl_1);
+	Axis_X.TargetPos += 250000;
 
-	for(i=0; i<1000; i++)
+	for(i=0; i<250000; i++)
 	{
 		while(circular_buf_full(cbufX))
 		{
 			vTaskDelay(1);
-			PIT_StartTimer(PIT, kPIT_Chnl_0);
+//			PIT_StartTimer(PIT, kPIT_Chnl_0);
 		}
-		ticksForStep = (i*10) + (1000 * block->values.xyz[0]);
+//		ticksForStep = (i*10) + (1000 * block->values.xyz[0]);
+		ticksForStep = block->values.xyz[0];
 
 #ifdef useSDRAM
 		SDRAM_buf_put(cbufX, Axis_X.AxisNum, ticksForStep);
@@ -299,6 +302,10 @@ static void planner_thread(void *arg)
 	// Init Axis
 	Axis_X.GPIO = GPIO1;
 	Axis_X.StepPin  = 18;
+	Axis_X.AxisNum = 1;
+	Axis_X.ActualPos = 0;
+	Axis_X.TargetPos = 0;
+	Axis_X.DirectionForward = true;
 
 	// Set up timer
 	PIT_GetDefaultConfig(&pitConfig);
