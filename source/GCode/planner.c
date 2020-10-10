@@ -22,6 +22,7 @@
 
 
 #define AXIS_BUFFER_SIZE 10000
+#define START_CRUISE_VALUE 999999
 
 /*******************************************************************************
  * Variables
@@ -116,30 +117,42 @@ void submitMoveBase(parser_block_t *block, char *message)
 	//circular_buf_put(cbufX, 0U);
 
 	Axis_X.TargetPos += 250000;
-	for(i=0; i<250000; i++)
+	// Accelerate
+	for(i=0; i<5000; i++)
 	{
 		while(circular_buf_full(cbufX))
 		{
 			vTaskDelay(1);
-//			PIT_StartTimer(PIT, kPIT_Chnl_0);
 		}
-//		ticksForStep = (i*10) + (1000 * block->values.xyz[0]);
-		ticksForStep = block->values.xyz[0];
+		//ticksForStep = 300 + 5000 -(block->values.xyz[0] * 2500);
+		ticksForStep = 300 + 5000 - i;
 		if(i==0)
 		{
 			/* Set timer period and start timer for first segment */
 			PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, ticksForStep);
 			PIT_SetTimerPeriod(PIT, kPIT_Chnl_1, ticksForStep);
-
 			PIT_StartTimer(PIT, kPIT_Chnl_0);
-			//PIT_StartTimer(PIT, kPIT_Chnl_1);
 		}
 		else
 		{
 			circular_buf_put(cbufX, ticksForStep);
 		}
 	}
+	// Cruise
+	Axis_X.CruiseStepsLeft = 240000;
+	Axis_X.Cruising = true;
+	circular_buf_put(cbufX, START_CRUISE_VALUE);
 
+	// Decelerate
+	for(i=0; i<5000; i++)
+	{
+		while(circular_buf_full(cbufX))
+		{
+			vTaskDelay(1);
+		}
+		ticksForStep = 300 + i;
+		circular_buf_put(cbufX, ticksForStep);
+	}
 }
 
 void AxisReady(void)

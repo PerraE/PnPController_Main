@@ -52,6 +52,8 @@ typedef struct {
 	uint32_t EnablePin;
 	uint32_t ActualPos;  			// Actual position
 	uint32_t TargetPos;				// Target position
+	uint32_t CruiseStepsLeft;		// Number of steps left for cruise speed
+	bool     Cruising;
 	bool	 DirectionForward;		// Direction of move
     bool	 moveReady;				// Signal that axis move is ready
     uint8_t  AxisNum;
