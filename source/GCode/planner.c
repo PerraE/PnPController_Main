@@ -20,8 +20,7 @@
 #define PIT_IRQ_ID 					PIT_IRQn
 #define PIT_SOURCE_CLOCK 			CLOCK_GetFreq(kCLOCK_PerClk)
 
-#define EXAMPLE_SEMC_START_ADDRESS (0x80000000U)
-#define AXIS_BUFFER_SIZE 300
+#define AXIS_BUFFER_SIZE 10000
 //#define useSDRAM
 
 /*******************************************************************************
@@ -173,6 +172,10 @@ void HandlePIT_IRQ(pit_chnl_t c, cbuf_handle_t cbuf, axis_t * axis)
 					GPIO_PortToggle	(axis->GPIO, (1 << axis->StepPin));
 					Axis_X.ActualPos ++;
 				}
+				else
+				{
+					bool empty = true;
+				}
 			}
 			// Disable timer and set move as ready
 			if(Axis_X.ActualPos == Axis_X.TargetPos)
@@ -293,8 +296,12 @@ static void planner_thread(void *arg)
 	cbufX = SDRAM_buf_init(AXIS_BUFFER_SIZE);
 	cbufY = SDRAM_buf_init(AXIS_BUFFER_SIZE);
 #else
-	Axis_X_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(uint32_t));
-	Axis_Y_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(uint32_t));
+//	Axis_X_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(uint32_t));
+//	Axis_Y_buffer  = malloc(AXIS_BUFFER_SIZE * sizeof(uint32_t));
+
+	AT_NONCACHEABLE_SECTION_ALIGN(static uint32_t Axis_X_buffer[AXIS_BUFFER_SIZE], 64U);
+	AT_NONCACHEABLE_SECTION_ALIGN(static uint32_t Axis_Y_buffer[AXIS_BUFFER_SIZE], 64U);
+
 	cbufX = circular_buf_init(Axis_X_buffer, AXIS_BUFFER_SIZE);
 	cbufY = circular_buf_init(Axis_Y_buffer, AXIS_BUFFER_SIZE);
 #endif
