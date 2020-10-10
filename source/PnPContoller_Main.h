@@ -53,7 +53,7 @@ typedef struct {
 	uint32_t ActualPos;  			// Actual position
 	uint32_t TargetPos;				// Target position
 	bool	 DirectionForward;		// Direction of move
-    uint8_t  moveReady;				// Signal that axis move is ready
+    bool	 moveReady;				// Signal that axis move is ready
     uint8_t  AxisNum;
 } axis_t;
 
